@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Patrol Sync Status</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@700;800&family=Source+Sans+3:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #f1efea;
+    --surface: #fbfaf7;
+    --ink: #211f1c;
+    --ink-soft: #5b564c;
+    --ink-faint: #8b8577;
+    --line: #dad5c9;
+    --accent: #c1442c;
+    --ok: #3f6b4f;
+    --ok-bg: #e3ecdf;
+    --err: #a3352a;
+    --err-bg: #f5e1de;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #17160f; --surface: #201f18; --ink: #eeeae0;
+      --ink-soft: #b3ac9a; --ink-faint: #7d7666; --line: #383425;
+      --accent: #e2794a; --ok: #7dbb8f; --ok-bg: #26301f;
+      --err: #e08a7d; --err-bg: #3a241f;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #17160f; --surface: #201f18; --ink: #eeeae0;
+    --ink-soft: #b3ac9a; --ink-faint: #7d7666; --line: #383425;
+    --accent: #e2794a; --ok: #7dbb8f; --ok-bg: #26301f;
+    --err: #e08a7d; --err-bg: #3a241f;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Source Sans 3', 'Segoe UI', sans-serif;
+    padding: 24px;
+  }
+  .card {
+    width: 100%;
+    max-width: 440px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 28px 30px 30px;
+  }
+  h1 {
+    font-family: 'Barlow Semi Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 26px;
+    margin: 0 0 2px;
+    letter-spacing: 0.01em;
+  }
+  .eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin-bottom: 20px;
+  }
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 20px;
+    margin-bottom: 20px;
+  }
+  .pill.ok { background: var(--ok-bg); color: var(--ok); }
+  .pill.err { background: var(--err-bg); color: var(--err); }
+  .pill .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+  .rows { display: flex; flex-direction: column; gap: 12px; }
+  .row {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--line);
+  }
+  .row:last-child { border-bottom: none; padding-bottom: 0; }
+  .row .label { color: var(--ink-faint); font-size: 13px; }
+  .row .value {
+    font-family: 'IBM Plex Mono', monospace;
+    font-variant-numeric: tabular-nums;
+    font-size: 13px;
+    text-align: right;
+    max-width: 260px;
+  }
+  .empty { color: var(--ink-faint); font-size: 14px; }
+  .footer {
+    margin-top: 22px;
+    font-size: 12px;
+    color: var(--ink-faint);
+  }
+  .footer a { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>Patrol Sync</h1>
+  <div class="eyebrow">Notion &rarr; Google Sheets</div>
+  <div id="status"></div>
+  <div class="footer">Runs daily at 3:00 AM UTC via Vercel Cron.</div>
+</div>
+<script>
+async function load() {
+  const el = document.getElementById('status');
+  try {
+    const resp = await fetch('/api/status');
+    const data = await resp.json();
+    if (!data.configured || !data.lastRun) {
+      el.innerHTML = '<div class="pill err"><span class="dot"></span>No runs recorded yet</div><p class="empty">The sync hasn\'t run yet, or logging isn\'t set up.</p>';
+      return;
+    }
+    const r = data.lastRun;
+    const when = new Date(r.ranAt);
+    el.innerHTML =
+      '<div class="pill ok"><span class="dot"></span>Last run succeeded</div>' +
+      '<div class="rows">' +
+        '<div class="row"><span class="label">Ran at</span><span class="value">' + when.toLocaleString() + '</span></div>' +
+        '<div class="row"><span class="label">Videos fetched</span><span class="value">' + r.videosFetched + '</span></div>' +
+        '<div class="row"><span class="label">New rows added</span><span class="value">' + r.rowsAdded + '</span></div>' +
+        '<div class="row"><span class="label">Clients touched</span><span class="value">' + (r.clients || '—') + '</span></div>' +
+        '<div class="row"><span class="label">Total runs logged</span><span class="value">' + r.totalRuns + '</span></div>' +
+      '</div>';
+  } catch (e) {
+    el.innerHTML = '<div class="pill err"><span class="dot"></span>Status unavailable</div><p class="empty">' + e.message + '</p>';
+  }
+}
+load();
+</script>
+</body>
+</html>
