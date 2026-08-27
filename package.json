@@ -1,0 +1,16 @@
+{
+  "name": "notion-sheets-sync",
+  "version": "1.0.0",
+  "description": "Daily Vercel cron that pushes new videos from a Notion database into per-client tabs in a Google Sheet.",
+  "main": "api/sync.js",
+  "scripts": {
+    "test-local": "node scripts/run-local.js"
+  },
+  "dependencies": {
+    "@notionhq/client": "^2.2.15",
+    "googleapis": "^140.0.1"
+  },
+  "devDependencies": {
+    "dotenv": "^16.4.5"
+  }
+}
